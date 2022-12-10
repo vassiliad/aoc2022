@@ -8,17 +8,11 @@ import (
 )
 
 type Elf struct {
-	rations []uint64
+	calories *uint64
 }
 
 func (e *Elf) Calories() uint64 {
-	var sum uint64 = 0
-
-	for _, ration := range e.rations {
-		sum += ration
-	}
-
-	return sum
+	return *e.calories
 }
 
 func ReadScanner(scanner *bufio.Scanner) ([]Elf, error) {
@@ -31,7 +25,7 @@ func ReadScanner(scanner *bufio.Scanner) ([]Elf, error) {
 		line = strings.TrimSpace(line)
 
 		if len(line) == 0 {
-			if len(curr_elf.rations) == 0 {
+			if curr_elf.calories == nil {
 				continue
 			}
 
@@ -44,10 +38,15 @@ func ReadScanner(scanner *bufio.Scanner) ([]Elf, error) {
 		if err != nil {
 			return elves, err
 		}
-		curr_elf.rations = append(curr_elf.rations, number)
+
+		if curr_elf.calories == nil {
+			curr_elf.calories = new(uint64)
+			*curr_elf.calories = 0
+		}
+		*curr_elf.calories += number
 	}
 
-	if len(curr_elf.rations) > 0 {
+	if curr_elf.calories != nil {
 		elves = append(elves, curr_elf)
 	}
 
