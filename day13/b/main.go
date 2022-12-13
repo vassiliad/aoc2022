@@ -73,7 +73,7 @@ func PartB(packets []*utilities.Packet) int {
 	ret := 1
 
 	for i, p := range packets {
-		if p.Nested != nil && len(p.Nested) == 1 && (*p.Nested[0]).Value == nil && len(p.Nested[0].Nested) == 1 {
+		if len(p.Nested) == 1 && len(p.Nested[0].Nested) == 1 {
 			uber_nested := p.Nested[0].Nested[0]
 
 			if uber_nested.Value != nil && (*uber_nested.Value == 2 || *uber_nested.Value == 6) {
