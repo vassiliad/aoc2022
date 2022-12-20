@@ -95,12 +95,6 @@ func (m *Metadata) DecideSpaces(idx int) int {
 func (m *Metadata) MoveNumber(idx int) {
 	spaces := m.DecideSpaces(idx)
 
-	// VV: There's no need to move anything if we're moving exactly len(numbers) spaces
-	// because we'd end up moving around the entire list
-	if spaces == 0 {
-		return
-	}
-
 	if spaces > 0 {
 		m.MoveForward(idx, spaces)
 	} else {
