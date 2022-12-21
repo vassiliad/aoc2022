@@ -21,8 +21,10 @@ type Metadata struct {
 func (m *Metadata) ToSlice() []int {
 	ret := make([]int, len(m.MixedOrder))
 
-	for i, idx := range m.MixedOrder {
-		ret[i] = m.Order[idx].Value
+	zero_index := m.Zero.Index
+
+	for i := 0; i < len(m.Order); i++ {
+		ret[i] = m.Order[m.MixedOrder[(zero_index+i)%len(m.MixedOrder)]].Value
 	}
 
 	return ret
@@ -82,15 +84,21 @@ func (m *Metadata) MoveBackward(idx, spaces int) {
 	}
 }
 
-func (m *Metadata) MoveNumber(idx int) {
+func (m *Metadata) DecideSpaces(idx int) int {
 	number := &m.Order[idx]
 	spaces := number.Value
 
-	// VV: There's no need to move anything if we're moving exactly len(numbers) spaces
-	// because we'd end up moving around the entire list
-	if spaces%len(m.MixedOrder) == 0 {
-		return
-	}
+	// VV: we are simulating removing the number, then going round and round a bunch of times in a circular buffer.
+	// There will be "len(numbers) -1" numbers till we put the number back in.
+	size := len(m.Order) - 1
+	dest_index := (spaces + number.Index) % size
+	spaces = dest_index - number.Index
+
+	return spaces
+}
+
+func (m *Metadata) MoveNumber(idx int) {
+	spaces := m.DecideSpaces(idx)
 
 	if spaces > 0 {
 		m.MoveForward(idx, spaces)

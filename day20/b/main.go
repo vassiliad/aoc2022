@@ -81,13 +81,11 @@ func (m *Metadata) DecideSpaces(idx int) int {
 	number := &m.Order[idx]
 	spaces := number.Value
 
-	if utilities.AbsInt(spaces) >= len(m.Order) {
-		// VV: when looping around "this number" won't exist.
-		// There will be "len(numbers) -1" numbers
-		size := len(m.Order) - 1
-		dest_index := (spaces + number.Index) % size
-		spaces = dest_index - number.Index
-	}
+	// VV: we are simulating removing the number, then going round and round a bunch of times in a circular buffer.
+	// There will be "len(numbers) -1" numbers till we put the number back in.
+	size := len(m.Order) - 1
+	dest_index := (spaces + number.Index) % size
+	spaces = dest_index - number.Index
 
 	return spaces
 }

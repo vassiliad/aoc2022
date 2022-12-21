@@ -39,7 +39,7 @@ func TestSmall(t *testing.T) {
 	}
 
 	// VV: As long as 0 is in the correct index wrt to other numbers, we're fine
-	expected := []int{-2, 1, 2, -3, 4, 0, 3}
+	expected := []int{0, 3, -2, 1, 2, -3, 4}
 	produced := metadata.ToSlice()
 
 	fmt.Println(produced)
