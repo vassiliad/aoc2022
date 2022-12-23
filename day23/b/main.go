@@ -9,10 +9,9 @@ import (
 )
 
 type Work struct {
-	Round int
-	// VV: keep track of round numbers that Elf[i] stops moving
-	Stopped      [][]int
+	Round        int
 	OrderedElves []utilities.Point
+	Neighbours   []map[int]int8
 	utilities.Group
 }
 
@@ -47,17 +46,30 @@ func (w *Work) Draw(to_term_too bool) string {
 }
 
 func (w *Work) Init() {
+	fmt.Println("There are", len(w.OrderedElves), "elves")
+	ordered := 0
+
 	for y := w.Top; y >= w.Bottom; y-- {
 		for x := w.Left; x <= w.Right; x++ {
 			p := utilities.Point{X: x, Y: y}
 			if _, ok := w.Elves[p]; ok {
 				w.OrderedElves = append(w.OrderedElves, p)
-				w.Stopped = append(w.Stopped, []int{})
+				w.Neighbours = append(w.Neighbours, map[int]int8{})
+				// VV: I modified PartA to do this for us, but adding the code here too for clarity
+				w.Elves[p] = ordered
+				ordered++
 			}
 		}
 	}
 
-	fmt.Println("Decided order of", len(w.OrderedElves), "elves")
+	for idx, elf := range w.OrderedElves {
+		for other_idx, other_elf := range w.OrderedElves[idx+1:] {
+			if utilities.AbsInt(other_elf.X-elf.X) <= 1 && utilities.AbsInt(other_elf.Y-elf.Y) <= 1 {
+				w.Neighbours[idx][other_idx+idx+1] = 0
+				w.Neighbours[other_idx+idx+1][idx] = 0
+			}
+		}
+	}
 }
 
 func (w *Work) ElfDecision(elf *utilities.Point) *utilities.Point {
@@ -68,21 +80,6 @@ func (w *Work) ElfDecision(elf *utilities.Point) *utilities.Point {
 	spotIsAvailableGroup := func(point *utilities.Point) bool {
 		_, ok := w.Elves[*point]
 		return !ok
-	}
-
-	neighbours := 0
-
-	for y := elf.Y - 1; y <= elf.Y+1; y++ {
-		for x := elf.X - 1; x <= elf.X+1; x++ {
-			if _, ok := w.Elves[utilities.Point{X: x, Y: y}]; ok {
-				neighbours++
-			}
-		}
-	}
-
-	// VV: There must be at least 1 more Elf nearby (other that myself)
-	if neighbours < 2 {
-		return nil
 	}
 
 	for i := 0; i < 4; i++ {
@@ -112,42 +109,71 @@ func (w *Work) ElfDecision(elf *utilities.Point) *utilities.Point {
 	return nil
 }
 
-func (w *Work) ActRound() {
+func (w *Work) ActRound() bool {
+	moved := 0
 	decisions := map[utilities.Point]int{}
 
 	for idx, elf := range w.OrderedElves {
+		if len(w.Neighbours[idx]) == 0 {
+			continue
+		}
+
 		d := w.ElfDecision(&elf)
 
 		if d != nil {
 			if _, conflict := decisions[*d]; !conflict {
 				decisions[*d] = idx
+				moved++
 			} else {
 				decisions[*d] = -1
 			}
-		} else {
-			w.Stopped[idx] = append(w.Stopped[idx], w.Round)
 		}
 	}
 
 	// VV: We need to do this in 2 steps. First remove all the old elves that made a move
 	// Then add the elves to the spots that they moved into
-	for _, elf_idx := range decisions {
+	for _, idx := range decisions {
 		// VV: -1 indicates that multiple Elves decided to move to the same spot
-		if elf_idx != -1 {
-			delete(w.Elves, w.OrderedElves[elf_idx])
+		if idx != -1 {
+			// VV: Goodbye old neighbours, I am moving out
+			delete(w.Elves, w.OrderedElves[idx])
+			for other_idx := range w.Neighbours[idx] {
+				if _, ok := w.Neighbours[other_idx][idx]; !ok {
+					panic(fmt.Sprintf("My neigbhour %d does not know me %d", other_idx, idx))
+				}
+
+				if _, ok := w.Neighbours[idx][other_idx]; !ok {
+					panic(fmt.Sprintf("I (%d) do not know my neighbour %d", idx, other_idx))
+				}
+
+				delete(w.Neighbours[other_idx], idx)
+				delete(w.Neighbours[idx], other_idx)
+			}
 		}
 	}
-	for new_spot, elf_idx := range decisions {
-		if elf_idx != -1 {
+	for new_spot, idx := range decisions {
+		if idx != -1 {
 			if _, ok := w.Elves[new_spot]; ok {
 				panic(fmt.Sprintf("Elf %+v is already there", new_spot))
 			}
 
-			w.OrderedElves[elf_idx].X, w.OrderedElves[elf_idx].Y = new_spot.X, new_spot.Y
-			w.Elves[w.OrderedElves[elf_idx]] = 1
+			// VV: Hello neighbours, I just moved in.
+			w.OrderedElves[idx].X, w.OrderedElves[idx].Y = new_spot.X, new_spot.Y
+
+			for y := new_spot.Y - 1; y <= new_spot.Y+1; y++ {
+				for x := new_spot.X - 1; x <= new_spot.X+1; x++ {
+					if other_idx, ok := w.Elves[utilities.Point{X: x, Y: y}]; ok {
+						w.Neighbours[idx][other_idx] = 1
+						w.Neighbours[other_idx][idx] = 1
+					}
+				}
+			}
+
+			w.Elves[w.OrderedElves[idx]] = idx
 		}
 	}
 
+	// VV: Keep track of rectangle containing Elves just to watch them move!
 	w.Left, w.Right = math.MaxInt, math.MinInt
 	w.Top, w.Bottom = math.MinInt, math.MaxInt
 
@@ -160,31 +186,33 @@ func (w *Work) ActRound() {
 	}
 
 	w.Round++
+
+	return moved > 0
 }
 
 func PartB(group *utilities.Group) int {
-	const rounds = 10
 
 	w := Work{
 		Group:        *group,
-		Stopped:      [][]int{},
 		OrderedElves: []utilities.Point{},
+		Neighbours:   []map[int]int8{},
 	}
 
 	w.Init()
 
 	w.Draw(true)
 
-	for i := 1; i <= rounds; i++ {
-		w.ActRound()
+	// VV: initially, I tried testing whether the Elves stop with some Period but I couldn't figure that out
+	// so in the end I just trimmed down the checks I need to make by keeping track of which Elves are guaranteed
+	// not to make a move during a round. These are Elves with no neighbours.
+	for w.ActRound() {
 	}
 
 	w.Draw(true)
 
 	fmt.Println("Top", w.Top, "bottom", w.Bottom, "Left", w.Left, "Right", w.Right, "Elves", len(w.Elves))
-	fmt.Printf("%+v\n", w.Stopped)
 
-	return 0
+	return w.Round
 }
 
 func main() {
