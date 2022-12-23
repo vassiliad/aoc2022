@@ -27,11 +27,11 @@ type Group struct {
 	Right  int
 	Top    int
 	Bottom int
-	Elves  map[Point]int8
+	Elves  map[Point]int
 }
 
 func ReadScanner(scanner *bufio.Scanner) (*Group, error) {
-	ret := Group{Elves: map[Point]int8{}}
+	ret := Group{Elves: map[Point]int{}}
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -44,7 +44,7 @@ func ReadScanner(scanner *bufio.Scanner) (*Group, error) {
 		ret.Right = MaxInt(ret.Right, len(line))
 		for x, c := range line {
 			if c == '#' {
-				ret.Elves[Point{X: x, Y: ret.Bottom}] = 1
+				ret.Elves[Point{X: x, Y: ret.Bottom}] = len(ret.Elves)
 			}
 		}
 		ret.Bottom--
