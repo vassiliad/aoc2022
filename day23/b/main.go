@@ -142,10 +142,6 @@ func (w *Work) ActRound() bool {
 					panic(fmt.Sprintf("My neigbhour %d does not know me %d", other_idx, idx))
 				}
 
-				if _, ok := w.Neighbours[idx][other_idx]; !ok {
-					panic(fmt.Sprintf("I (%d) do not know my neighbour %d", idx, other_idx))
-				}
-
 				delete(w.Neighbours[other_idx], idx)
 				delete(w.Neighbours[idx], other_idx)
 			}
