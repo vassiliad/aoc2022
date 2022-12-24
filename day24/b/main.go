@@ -126,7 +126,7 @@ func (v *Valley) InitBlizards() {
 	}
 }
 
-func (s *State) PlotPathToDestination(v *Valley, target int) {
+func (s *State) EstimateDistanceToTargetPosition(v *Valley, target int) {
 	x := (s.Pos + v.Width) % v.Width
 	y := s.Pos / v.Width
 
@@ -271,7 +271,7 @@ func (v *Valley) Neighbours(state *State) []int {
 }
 
 func (v *Valley) MayPushState(state State, prev *State, target int) bool {
-	state.PlotPathToDestination(v, target)
+	state.EstimateDistanceToTargetPosition(v, target)
 
 	state.PeriodTime = state.Time
 
@@ -351,7 +351,7 @@ func (v *Valley) TimeToMoveTo(target int, initial State) State {
 		for _, n := range neighbours {
 			next := future
 			next.Pos = n
-			next.PlotPathToDestination(v, target)
+			next.EstimateDistanceToTargetPosition(v, target)
 			v.MayPushState(next, &state, target)
 		}
 
@@ -378,7 +378,7 @@ func PartB(v *utilities.Valley) int {
 		},
 	}
 
-	initial.PlotPathToDestination(&valley, target_end)
+	initial.EstimateDistanceToTargetPosition(&valley, target_end)
 
 	initial = valley.TimeToMoveTo(target_end, initial)
 	initial = valley.TimeToMoveTo(target_start, initial)
